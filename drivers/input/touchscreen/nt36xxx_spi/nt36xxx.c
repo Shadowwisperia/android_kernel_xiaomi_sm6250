@@ -1947,6 +1947,54 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
+	ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
+	if (ret < 0) {
+		NVT_ERR("init_lct_tp_info Failed!\n");
+		goto err_init_lct_tp_info_failed;
+	} else {
+		NVT_LOG("init_lct_tp_info Succeeded!\n");
+	}
+
+#if WAKEUP_GESTURE
+	ret = init_lct_tp_gesture(lct_nvt_tp_gesture_callback);
+	if (ret < 0) {
+		NVT_ERR("init_lct_tp_gesture Failed!\n");
+		goto err_init_lct_tp_gesture_failed;
+	} else {
+		NVT_LOG("init_lct_tp_gesture Succeeded!\n");
+	}
+#endif
+
+#if LCT_TP_GRIP_AREA_EN
+	ret = init_lct_tp_grip_area(lct_tp_set_screen_angle_callback, lct_tp_get_screen_angle_callback);
+	if (ret < 0) {
+		NVT_ERR("init_lct_tp_grip_area Failed!\n");
+		goto err_init_lct_tp_grip_area_failed;
+	} else {
+		NVT_LOG("init_lct_tp_grip_area Succeeded!\n");
+	}
+#endif
+
+#if LCT_TP_WORK_EN
+	ret = init_lct_tp_work(lct_nvt_tp_work_callback);
+	if (ret < 0) {
+		NVT_ERR("init_lct_tp_work Failed!\n");
+		goto err_init_lct_tp_work_failed;
+	} else {
+		NVT_LOG("init_lct_tp_work Succeeded!\n");
+	}
+#endif
+
+#if LCT_TP_PALM_EN
+	ret = init_lct_tp_palm(lct_nvt_tp_palm_callback);
+	if (ret < 0) {
+		NVT_ERR("init_lct_tp_palm Failed!");
+		goto err_init_lct_tp_palm_failed;
+	} else {
+		NVT_LOG("init_lct_tp_palm Succeeded!");
+	}
+#endif
+
 #if defined(CONFIG_FB)
 	ts->workqueue = create_singlethread_workqueue("nvt_ts_workqueue");
 	if (!ts->workqueue) {
@@ -2039,6 +2087,26 @@ err_register_fb_notif_failed:
 	unregister_early_suspend(&ts->early_suspend);
 err_register_early_suspend_failed:
 #endif
+#if LCT_TP_WORK_EN
+err_init_lct_tp_work_failed:
+uninit_lct_tp_work();
+#endif
+
+#if LCT_TP_PALM_EN
+err_init_lct_tp_palm_failed:
+uninit_lct_tp_palm();
+#endif
+
+#if LCT_TP_GRIP_AREA_EN
+err_init_lct_tp_grip_area_failed:
+uninit_lct_tp_grip_area();
+#endif
+#if WAKEUP_GESTURE
+err_init_lct_tp_gesture_failed:
+uninit_lct_tp_gesture();
+#endif
+err_init_lct_tp_info_failed:
+uninit_lct_tp_info();
 #if NVT_TOUCH_EXT_PROC
 nvt_extra_proc_deinit();
 err_extra_proc_init_failed:
@@ -2129,6 +2197,22 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 	unregister_early_suspend(&ts->early_suspend);
 #endif
 
+#if LCT_TP_WORK_EN
+	uninit_lct_tp_work();
+#endif
+
+#if LCT_TP_PALM_EN
+	uninit_lct_tp_palm();
+#endif
+
+#if LCT_TP_GRIP_AREA_EN
+	uninit_lct_tp_grip_area();
+#endif
+#if WAKEUP_GESTURE
+	uninit_lct_tp_gesture();
+#endif
+	uninit_lct_tp_info();
+
 #if NVT_TOUCH_EXT_PROC
 	nvt_extra_proc_deinit();
 #endif
@@ -2209,6 +2293,14 @@ static void nvt_ts_shutdown(struct spi_device *client)
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&ts->early_suspend);
 #endif
+
+#if LCT_TP_WORK_EN
+	uninit_lct_tp_work();
+#endif
+#if WAKEUP_GESTURE
+	uninit_lct_tp_gesture();
+#endif
+	uninit_lct_tp_info();
 
 #if NVT_TOUCH_EXT_PROC
 	nvt_extra_proc_deinit();
